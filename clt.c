@@ -39,11 +39,7 @@ int main(void) {
     }
 
     while (1) {
-      void  traiterclavier(int sock){
-          int taillemessage;
-          taillemessage= read(0,longbuff,512);
-          
-        }
+
 
         printf("Enter message : ");
         char* fgets(char *string, int length, FILE * stream);
@@ -68,19 +64,18 @@ int main(void) {
         return 0;
     }
 }
-/*
- *void
- *TraitementClavier(int sock) /* Socket E/S */ /*{
-/*   char buf[256];
-  *  int taillemessage;
+
+void
+TraitementClavier(int sock) /* Socket E/S */ {
+    char buf[256];
+    int taillemessage;
 
     taillemessage = read(0, buf, 256);
-    /* Envoyer a tous les client la taille du message puis le message */
-/*  sendto(sock, &taillemessage, sizeof (taillemessage), 0,
-          (struct sockaddr *) autre, sizeof (struct sockaddr));
- */
-/*sendto(sock, buf, taillemessage, 0,
-        (struct sockaddr *) autre, sizeof (struct sockaddr));
+    /*  Envoyer a tous les client la taille du message puis le message */
+    sendto(sock, &taillemessage, sizeof (taillemessage), 0,
+            (struct sockaddr *) autre, sizeof (struct sockaddr));
+
+    sendto(sock, buf, taillemessage, 0,
+            (struct sockaddr *) autre, sizeof (struct sockaddr));
 
 }
- */
