@@ -12,7 +12,16 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
+      <itemPath>../c.c</itemPath>
+      <itemPath>../c.c~</itemPath>
+      <itemPath>../client</itemPath>
+      <itemPath>../client1.c</itemPath>
+      <itemPath>../list</itemPath>
+      <itemPath>../list.c</itemPath>
       <itemPath>main.c</itemPath>
+      <itemPath>../s.c</itemPath>
+      <itemPath>../server</itemPath>
+      <itemPath>../server1.c</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
                    displayName="Test Files"
@@ -25,18 +34,6 @@
                    kind="IMPORTANT_FILES_FOLDER">
       <itemPath>Makefile</itemPath>
     </logicalFolder>
-    <itemPath>../c.c</itemPath>
-    <itemPath>../c.c~</itemPath>
-    <itemPath>../client</itemPath>
-    <itemPath>../client.c~</itemPath>
-    <itemPath>../client1.c</itemPath>
-    <itemPath>../client1.c~</itemPath>
-    <itemPath>../list</itemPath>
-    <itemPath>../list.c</itemPath>
-    <itemPath>../s.c</itemPath>
-    <itemPath>../server</itemPath>
-    <itemPath>../server1.c</itemPath>
-    <itemPath>../server1.c~</itemPath>
   </logicalFolder>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
@@ -54,11 +51,7 @@
       </item>
       <item path="../client" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../client.c~" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="../client1.c" ex="false" tool="0" flavor2="0">
-      </item>
-      <item path="../client1.c~" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../list" ex="false" tool="3" flavor2="0">
       </item>
@@ -69,8 +62,6 @@
       <item path="../server" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../server1.c" ex="false" tool="0" flavor2="0">
-      </item>
-      <item path="../server1.c~" ex="false" tool="3" flavor2="0">
       </item>
       <item path="main.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -101,11 +92,7 @@
       </item>
       <item path="../client" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../client.c~" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="../client1.c" ex="false" tool="0" flavor2="0">
-      </item>
-      <item path="../client1.c~" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../list" ex="false" tool="3" flavor2="0">
       </item>
@@ -116,8 +103,6 @@
       <item path="../server" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../server1.c" ex="false" tool="0" flavor2="0">
-      </item>
-      <item path="../server1.c~" ex="false" tool="3" flavor2="0">
       </item>
       <item path="main.c" ex="false" tool="0" flavor2="0">
       </item>
