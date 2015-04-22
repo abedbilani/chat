@@ -34,6 +34,7 @@
                    kind="IMPORTANT_FILES_FOLDER">
       <itemPath>Makefile</itemPath>
     </logicalFolder>
+    <itemPath>Makefile</itemPath>
   </logicalFolder>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
@@ -62,6 +63,8 @@
       <item path="../server" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../server1.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Makefile" ex="false" tool="3" flavor2="0">
       </item>
       <item path="main.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -103,6 +106,8 @@
       <item path="../server" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../server1.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="Makefile" ex="false" tool="3" flavor2="0">
       </item>
       <item path="main.c" ex="false" tool="0" flavor2="0">
       </item>
