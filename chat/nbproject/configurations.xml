@@ -12,7 +12,7 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
-      <itemPath>Makefile</itemPath>
+      <itemPath>/home/abed/Desktop/projet/Makefile</itemPath>
       <itemPath>../c.c</itemPath>
       <itemPath>../c.c~</itemPath>
       <itemPath>../client</itemPath>
@@ -61,7 +61,7 @@
       </item>
       <item path="../server1.c" ex="false" tool="0" flavor2="0">
       </item>
-      <item path="Makefile" ex="false" tool="3" flavor2="0">
+      <item path="/home/abed/Desktop/projet/Makefile" ex="false" tool="3" flavor2="0">
       </item>
       <item path="main.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -102,7 +102,7 @@
       </item>
       <item path="../server1.c" ex="false" tool="0" flavor2="0">
       </item>
-      <item path="Makefile" ex="false" tool="3" flavor2="0">
+      <item path="/home/abed/Desktop/projet/Makefile" ex="false" tool="3" flavor2="0">
       </item>
       <item path="main.c" ex="false" tool="0" flavor2="0">
       </item>
