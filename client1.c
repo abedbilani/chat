@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
           "      login puis nom utilisateur pour connecter au serveur \n"
           "       pour envoyer un message a un client taper : send utilisateur puis message \n"
           "      quiter \n\n\n");
-printf("-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*Server*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-\n");
+printf("-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*Client*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-\n");
 
     
     
