@@ -1,286 +1,271 @@
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <netdb.h>
 #include <unistd.h>
+#include <errno.h>
+#include <string.h>
 #include <pthread.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#define IP "127.0.0.1"
-#define PORT 8080
-#define BACKLOG 10
-#define CLIENTS 10
- 
-#define BUFFSIZE 1024
-#define USERLEN 32
-#define COMNDLN 16
- 
-struct PACKET {
-char comande[COMNDLN]; // accepter les commande
-char user[USERLEN]; // client
-char buff[BUFFSIZE]; 
-};
- 
-struct THREADINFO {
-pthread_t thread_ID; // thread's pointer
-int sockfd; // socket fd
-char user[USERLEN]; // clt taille
-};
- //tete du list
-struct LLNODE {
-struct THREADINFO threadinfo;
-struct LLNODE *next;
-};
- //list
-struct LLIST {
-struct LLNODE *head, *tail;
-int size;
-};
- 
-int compare(struct THREADINFO *a, struct THREADINFO *b) {
-return a->sockfd - b->sockfd;
-}
-//initialiser la liste 
-void list_init(struct LLIST *ll) {
-ll->head = ll->tail = NULL;
-ll->size = 0;
-}
- 
-int list_insert(struct LLIST *ll, struct THREADINFO *thr_info) {
-if(ll->size == CLIENTS) return -1;
-if(ll->head == NULL) {
-ll->head = (struct LLNODE *)malloc(sizeof(struct LLNODE));
-ll->head->threadinfo = *thr_info;
-ll->head->next = NULL;
-ll->tail = ll->head;
-}
-else {
-ll->tail->next = (struct LLNODE *)malloc(sizeof(struct LLNODE));
-ll->tail->next->threadinfo = *thr_info;
-ll->tail->next->next = NULL;
-ll->tail = ll->tail->next;
-}
-ll->size++;
-return 0;
-}
- 
-int list_delete(struct LLIST *ll, struct THREADINFO *thr_info) {
-struct LLNODE *curr, *temp;
-if(ll->head == NULL) return -1;
-if(compare(thr_info, &ll->head->threadinfo) == 0) {
-temp = ll->head;
-ll->head = ll->head->next;
-if(ll->head == NULL) ll->tail = ll->head;
-free(temp);
-ll->size--;
-return 0;
-}
-for(curr = ll->head; curr->next != NULL; curr = curr->next) {
-if(compare(thr_info, &curr->next->threadinfo) == 0) {
-temp = curr->next;
-if(temp == ll->tail) ll->tail = curr;
-curr->next = curr->next->next;
-free(temp);
-ll->size--;
-return 0;
-}
-}
-return -1;
-}
- 
-void list_dump(struct LLIST *ll) {
-struct LLNODE *curr;
-struct THREADINFO *thr_info;
-printf("Nombre de connection courante: %d\n", ll->size);
-for(curr = ll->head; curr != NULL; curr = curr->next) {
-thr_info = &curr->threadinfo;
-printf("[%d] %s\n", thr_info->sockfd, thr_info->user);
-}
-}
- 
-int sockfd, newfd;
-struct THREADINFO thread_info[CLIENTS];
-struct LLIST client_list;
-pthread_mutex_t clientlist_mutex;
- 
-void *io_handler(void *param);
-void *client_handler(void *fd);
- 
-int main(int argc, char **argv) {
-int err_ret, sin_size;
-struct sockaddr_in serv_addr, client_addr;
-pthread_t interrupt;
- printf ("*********Welcome to mini chat server side*********\n");
-  printf( "  Les commande sont : \n"
-          "     _kill ( user id )\n"
-          "     comande list pour lister les clients connecter \n"
-          "     quiter \n\n\n");
-printf("-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*Server*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-\n");
 
-/* initialize linked list */
-list_init(&client_list);
- 
-/* initiate mutex */
-pthread_mutex_init(&clientlist_mutex, NULL);
- 
-/* open a socket */
-if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-err_ret = errno;
-fprintf(stderr, "socket() failed...\n");
-return err_ret;
-}
- 
-//valeur initial
-serv_addr.sin_family = AF_INET;
-serv_addr.sin_port = htons(PORT);
-serv_addr.sin_addr.s_addr = inet_addr(IP);
-memset(&(serv_addr.sin_zero), 0, 8);
- 
-/* bind address with socket */
-if(bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) == -1) {
-err_ret = errno;
-fprintf(stderr, "bind() failed...\n");
-return err_ret;
-}
- 
-/* start listening for connection */
-if(listen(sockfd, BACKLOG) == -1) {
-err_ret = errno;
-fprintf(stderr, "listen() failed...\n");
-return err_ret;
-}
- 
-//init thread pour e/s
-if(pthread_create(&interrupt, NULL, io_handler, NULL) != 0) {
-err_ret = errno;
-fprintf(stderr, "pthread_create() failed...\n");
-return err_ret;
-}
- 
-//attente de connection
-while(1) {
-sin_size = sizeof(struct sockaddr_in);
-if((newfd = accept(sockfd, (struct sockaddr *)&client_addr, (socklen_t*)&sin_size)) == -1) {
-err_ret = errno;
-fprintf(stderr, "accept() failed...\n");
-return err_ret;
-}
-else {
-if(client_list.size == CLIENTS) {
-fprintf(stderr, "Connection full,interdit ...\n");
-continue;
-}
-printf("Demande Connection ...\n");
-struct THREADINFO threadinfo;
-threadinfo.sockfd = newfd;
-strcpy(threadinfo.user, "Anonymous");
-pthread_mutex_lock(&clientlist_mutex);
-list_insert(&client_list, &threadinfo);
-pthread_mutex_unlock(&clientlist_mutex);
-pthread_create(&threadinfo.thread_ID, NULL, client_handler, (void *)&threadinfo);
-}
-}
- 
-return 0;
-}
- 
-void *io_handler(void *param) {
-char comande[COMNDLN];
-while(scanf("%s", comande)==1) {
-if(!strcmp(comande, "quiter")) {
+#define MAX_CLIENTS 100
 
-pthread_mutex_destroy(&clientlist_mutex);
-close(sockfd);
-exit(0);
+static unsigned int cli_count = 0;
+static int IdClient = 10;
+
+typedef struct {
+    struct sockaddr_in addr;
+    int connfd; /*  file descriptor */
+    int IdClient;
+    char name[32];
+} client_t;
+
+client_t *clients[MAX_CLIENTS];
+
+/*ajouter*/
+void queue_add(client_t *cl) {
+    int i;
+    for (i = 0; i < MAX_CLIENTS; i++) {
+        if (!clients[i]) {
+            clients[i] = cl;
+            return;
+        }
+    }
 }
-else if(!strcmp(comande, "list")) {
-pthread_mutex_lock(&clientlist_mutex);
-list_dump(&client_list);
-pthread_mutex_unlock(&clientlist_mutex);
+
+/* Delete */
+void queue_delete(int IdClient) {
+    int i;
+    for (i = 0; i < MAX_CLIENTS; i++) {
+        if (clients[i]) {
+            if (clients[i]->IdClient == IdClient) {
+                clients[i] = NULL;
+                return;
+            }
+        }
+    }
 }
-else {
-fprintf(stderr, "Unknown command: %s...\n", comande);
+
+void send_message(char *s, int IdClient) {
+    int i;
+    for (i = 0; i < MAX_CLIENTS; i++) {
+        if (clients[i]) {
+            if (clients[i]->IdClient != IdClient) {
+                write(clients[i]->connfd, s, strlen(s));
+            }
+        }
+    }
 }
+
+/* Send message to all clients */
+void send_message_all(char *s) {
+    int i;
+    for (i = 0; i < MAX_CLIENTS; i++) {
+        if (clients[i]) {
+            write(clients[i]->connfd, s, strlen(s));
+        }
+    }
 }
-return NULL;
+
+/* Send message to sender */
+void send_message_self(const char *s, int connfd) {
+    write(connfd, s, strlen(s));
 }
- 
-void *client_handler(void *fd) {
-struct THREADINFO threadinfo = *(struct THREADINFO *)fd;
-struct PACKET packet;
-struct LLNODE *curr;
-int bytes, sent;
-while(1) {
-bytes = recv(threadinfo.sockfd, (void *)&packet, sizeof(struct PACKET), 0);
-if(!bytes) {
-fprintf(stderr, "Connection lost from [%d] %s...\n", threadinfo.sockfd, threadinfo.user);
-pthread_mutex_lock(&clientlist_mutex);
-list_delete(&client_list, &threadinfo);
-pthread_mutex_unlock(&clientlist_mutex);
-break;
+
+/* Send message to client */
+void send_message_client(char *s, int IdClient) {
+    int i;
+    for (i = 0; i < MAX_CLIENTS; i++) {
+        if (clients[i]) {
+            if (clients[i]->IdClient == IdClient) {
+                write(clients[i]->connfd, s, strlen(s));
+            }
+        }
+    }
 }
-printf("[%d] %s %s %s\n", threadinfo.sockfd, packet.comande, packet.user, packet.buff);
-if(!strcmp(packet.comande, "user")) {
-printf("Set user to %s\n", packet.user);
-pthread_mutex_lock(&clientlist_mutex);
-for(curr = client_list.head; curr != NULL; curr = curr->next) {
-if(compare(&curr->threadinfo, &threadinfo) == 0) {
-strcpy(curr->threadinfo.user, packet.user);
-strcpy(threadinfo.user, packet.user);
-break;
+
+/* Send list of active clients */
+void send_active_clients(int connfd) {
+    int i;
+    char s[64];
+    for (i = 0; i < MAX_CLIENTS; i++) {
+        if (clients[i]) {
+            sprintf(s, "<<CLIENT %d | %s\r\n", clients[i]->IdClient, clients[i]->name);
+            send_message_self(s, connfd);
+        }
+    }
 }
+
+/* Strip CRLF */
+void strip_newline(char *s) {
+    while (*s != '\0') {
+        if (*s == '\r' || *s == '\n') {
+            *s = '\0';
+        }
+        s++;
+    }
 }
-pthread_mutex_unlock(&clientlist_mutex);
+
+/* Print ip address */
+void print_client_addr(struct sockaddr_in addr) {
+    printf("%d.%d.%d.%d",
+            addr.sin_addr.s_addr & 0xFF,
+            (addr.sin_addr.s_addr & 0xFF00) >> 8,
+            (addr.sin_addr.s_addr & 0xFF0000) >> 16,
+            (addr.sin_addr.s_addr & 0xFF000000) >> 24);
 }
-else if(!strcmp(packet.comande, "send")) {
-int i;
-char target[USERLEN];
-for(i = 0; packet.buff[i] != ' '; i++); packet.buff[i++] = 0;
-strcpy(target, packet.buff);
-pthread_mutex_lock(&clientlist_mutex);
-for(curr = client_list.head; curr != NULL; curr = curr->next) {
-if(strcmp(target, curr->threadinfo.user) == 0) {
-struct PACKET spacket;
-memset(&spacket, 0, sizeof(struct PACKET));
-if(!compare(&curr->threadinfo, &threadinfo)) continue;
-strcpy(spacket.comande, "msg");
-strcpy(spacket.user, packet.user);
-strcpy(spacket.buff, &packet.buff[i]);
-sent = send(curr->threadinfo.sockfd, (void *)&spacket, sizeof(struct PACKET), 0);
+
+/* communication avec client */
+void *hanle_client(void *arg) {
+    char buff_out[1024];
+    char buff_in[1024];
+    int rlen;
+
+    cli_count++;
+    client_t *cli = (client_t *) arg;
+
+
+    print_client_addr(cli->addr);
+    printf(" ID CLIENT pour envoyer message %d\n", cli->IdClient);
+
+    sprintf(buff_out, "Connecter , SALUT %s\r\n", cli->name);
+    send_message_all(buff_out);
+
+    //receive
+    while ((rlen = read(cli->connfd, buff_in, sizeof (buff_in) - 1)) > 0) {
+        buff_in[rlen] = '\0';
+        buff_out[0] = '\0';
+        strip_newline(buff_in);
+
+        //buffer empty
+        if (!strlen(buff_in)) {
+            continue;
+        }
+
+        //Option
+        if (buff_in[0] == '\\') {
+            char *command, *param;
+            command = strtok(buff_in, " ");
+            if (!strcmp(command, "\\QUIT")) {
+                break;
+            } else if (!strcmp(command, "\\PING")) {
+                send_message_self("<<Connecter au serveur\r\n", cli->connfd);
+            } else if (!strcmp(command, "\\NAME")) {
+                param = strtok(NULL, " ");
+                if (param) {
+                    char *old_name = strdup(cli->name);
+                    strcpy(cli->name, param);
+                    sprintf(buff_out, "<<RENAME, %s TO %s\r\n", old_name, cli->name);
+                    free(old_name);
+                    send_message_all(buff_out);
+                } else {
+                    send_message_self("<<NAME CANNOT BE NULL\r\n", cli->connfd);
+                }
+            } else if (!strcmp(command, "\\SENDTO")) {
+                param = strtok(NULL, " ");
+                if (param) {
+                    int IdClient = atoi(param);
+                    param = strtok(NULL, " ");
+                    if (param) {
+                        sprintf(buff_out, "[M de part ][%s]", cli->name);
+                        while (param != NULL) {
+                            strcat(buff_out, " ");
+                            strcat(buff_out, param);
+                            param = strtok(NULL, " ");
+                        }
+                        strcat(buff_out, "\r\n");
+                        send_message_client(buff_out, IdClient);
+                    } else {
+                        send_message_self("<<MESSAGE CANNOT BE NULL\r\n", cli->connfd);
+                    }
+                } else {
+                    send_message_self("<<REFERENCE CANNOT BE NULL\r\n", cli->connfd);
+                }
+            } else if (!strcmp(command, "\\LIST")) {
+                sprintf(buff_out, "<<CLIENTS %d\r\n", cli_count);
+                send_message_self(buff_out, cli->connfd);
+                send_active_clients(cli->connfd);
+            } else if (!strcmp(command, "\\COMMAND")) {
+                strcat(buff_out, "\\QUIT     Quitter\r\n");
+                strcat(buff_out, "\\PING     test connection \r\n");
+                strcat(buff_out, "\\NAME     <name> Change nickname\r\n");
+                strcat(buff_out, "\\SENDTO   <ID> <message>  envoyer message a un autre client\r\n");
+                strcat(buff_out, "\\LIST     LISt des clients connecter\r\n");
+                strcat(buff_out, "\\COMMAND     list command\r\n");
+                send_message_self(buff_out, cli->connfd);
+            } else {
+                send_message_self("<<UNKOWN COMMAND\r\n", cli->connfd); //si \w chi mech ma3rouf 
+            }
+        } else {
+            //broadcast
+            sprintf(buff_out, "[%s] %s\r\n", cli->name, buff_in);
+            send_message(buff_out, cli->IdClient);
+        }
+    }
+
+    //terminer con
+    close(cli->connfd);
+    sprintf(buff_out, " BYE %s\r\n", cli->name);
+    send_message_all(buff_out);
+
+    //rem mn thread wel queue
+    queue_delete(cli->IdClient);
+    printf("<<QUITTER ");
+    print_client_addr(cli->addr);
+    printf(" ID CLIENT %d\n", cli->IdClient);
+    free(cli);
+    cli_count--;
+    pthread_detach(pthread_self());
 }
-}
-pthread_mutex_unlock(&clientlist_mutex);
-}
-else if(!strcmp(packet.comande, "send")) {
-pthread_mutex_lock(&clientlist_mutex);
-for(curr = client_list.head; curr != NULL; curr = curr->next) {
-struct PACKET spacket;
-memset(&spacket, 0, sizeof(struct PACKET));
-if(!compare(&curr->threadinfo, &threadinfo)) continue;
-strcpy(spacket.comande, "msg");
-strcpy(spacket.user, packet.user);
-strcpy(spacket.buff, packet.buff);
-sent = send(curr->threadinfo.sockfd, (void *)&spacket, sizeof(struct PACKET), 0);
-}
-pthread_mutex_unlock(&clientlist_mutex);
-}
-else if(!strcmp(packet.comande, "quiter")) {
-printf("[%d] %s a deconecter ...\n", threadinfo.sockfd, threadinfo.user);
-pthread_mutex_lock(&clientlist_mutex);
-list_delete(&client_list, &threadinfo);
-pthread_mutex_unlock(&clientlist_mutex);
-break;
-}
-else {
-fprintf(stderr, "Garbage data from [%d] %s...\n", threadinfo.sockfd, threadinfo.user);
-}
-}
- 
-/* clean up */
-close(threadinfo.sockfd);
- 
-return NULL;
+
+int main(int argc, char *argv[]) {
+    int listenfd = 0, connfd = 0, n = 0;
+    struct sockaddr_in serv_addr;
+    struct sockaddr_in cli_addr;
+    pthread_t tid;
+    printf("**********SERVER SIDE***********\n");
+    //socket
+    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serv_addr.sin_port = htons(5000);
+
+    //bind
+    if (bind(listenfd, (struct sockaddr*) &serv_addr, sizeof (serv_addr)) < 0) {
+        perror("Socket binding failed");
+        return 1;
+    }
+
+    /* Listen */
+    if (listen(listenfd, 10) < 0) {
+        perror("Socket listening failed");
+        return 1;
+    }
+
+
+    while (1) {
+        int clilen = sizeof (cli_addr);
+        connfd = accept(listenfd, (struct sockaddr*) &cli_addr, &clilen);
+
+        if ((cli_count + 1) == MAX_CLIENTS) {
+            printf("<<MAX CLIENTS \n");
+            printf("<<REJET ");
+            print_client_addr(cli_addr);
+            printf("\n");
+            close(connfd);
+            continue;
+        }
+
+        // Client
+        client_t *cli = (client_t *) malloc(sizeof (client_t));
+        cli->addr = cli_addr;
+        cli->connfd = connfd;
+        cli->IdClient = IdClient++;
+        sprintf(cli->name, "%d", cli->IdClient);
+        queue_add(cli);
+        pthread_create(&tid, NULL, &hanle_client, (void*) cli);
+
+        sleep(1);
+    }
 }
